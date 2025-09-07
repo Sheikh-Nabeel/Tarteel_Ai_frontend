@@ -1,32 +1,55 @@
+import React from 'react'
 import { useState } from 'react'
 import Login from './Components/Forms/Login'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Signup from './Components/Forms/Signup'
 import ForgetPassword from './Components/Forms/ForgetPassword'
 import CreateNewPassword from './Components/Forms/CreateNewPassword'
 import BottomNav from './Components/Navbar/BottomNav'
+import TopNav from './Components/Navbar/TopNav'
+import Home from './Components/Home/Home'
 import Quran from './Components/Quran/Quran'
 import SurahDetail from './Components/Quran/SurahDetail'
-
+import Hadith from './Components/Hadith/Hadith'
+import Ibadat from './Components/Ibadat/Ibadat'
+import Qibla from './Components/Qibla/Qibla'
+import Notifications from './Components/Notifications/Notifications'
+import Profile from './Components/Profile/Profile'
+import Settings from './Components/Settings/Settings'
 
 function App() {
-
   return (
-    <>
-    <BrowserRouter>
-     <Login/>
-     <Signup/>
-     <ForgetPassword/>
-     <CreateNewPassword/>
-     <BottomNav/>
-     <Routes>
-        <Route path="/quran" element={<Quran />} />
-        <Route path="/quran/:id" element={<SurahDetail />} />
-     </Routes>
-    
-    
-    </BrowserRouter>
-    </>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Authentication Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgetPassword />} />
+          <Route path="/create-new-password" element={<CreateNewPassword />} />
+          
+          {/* Main App Routes with Navigation */}
+          <Route path="/*" element={
+            <>
+              <TopNav />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/quran" element={<Quran />} />
+                <Route path="/quran/:id" element={<SurahDetail />} />
+                <Route path="/hadith" element={<Hadith />} />
+                <Route path="/ibadat" element={<Ibadat />} />
+                <Route path="/qibla" element={<Qibla />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+              </Routes>
+              <BottomNav />
+            </>
+          } />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 
