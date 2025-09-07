@@ -10,6 +10,9 @@ import BottomNav from './Components/Navbar/BottomNav'
 import TopNav from './Components/Navbar/TopNav'
 import Home from './Components/Home/Home'
 import Quran from './Components/Quran/Quran'
+import ParaList from './Components/Quran/ParaList'
+import SurahByPara from './Components/Quran/SurahByPara'
+import AyahSelection from './Components/Quran/AyahSelection'
 import SurahDetail from './Components/Quran/SurahDetail'
 import Hadith from './Components/Hadith/Hadith'
 import Ibadat from './Components/Ibadat/Ibadat'
@@ -35,7 +38,9 @@ function App() {
               <TopNav />
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/quran" element={<Quran />} />
+                <Route path="/quran" element={<ParaList />} />
+                <Route path="/quran/para/:paraNumber" element={<SurahByPara />} />
+                <Route path="/quran/para/:paraNumber/surah/:surahNumber" element={<AyahSelection />} />
                 <Route path="/quran/:id" element={<SurahDetail />} />
                 <Route path="/hadith" element={<Hadith />} />
                 <Route path="/ibadat" element={<Ibadat />} />

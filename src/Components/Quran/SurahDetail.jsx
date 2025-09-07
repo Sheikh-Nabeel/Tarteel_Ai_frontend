@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { useTheme } from '../../contexts/ThemeContext';
 
 const SurahDetail = () => {
   const { id } = useParams();
+  const theme = useTheme();
   const [surah, setSurah] = useState(null);
   const [arabicAyahs, setArabicAyahs] = useState([]);
   const [englishAyahs, setEnglishAyahs] = useState([]);
@@ -41,12 +43,30 @@ const SurahDetail = () => {
       .catch(err => console.error("Transliteration fetch error:", err));
   }, [id]);
 
-  if (!surah) return <p className="text-center mt-10">Loading...</p>;
+  if (!surah) return (
+    <div 
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: theme.colors.background }}
+    >
+      <p 
+        className="text-center text-lg"
+        style={{ color: theme.colors.text }}
+      >
+        Loading...
+      </p>
+    </div>
+  );
 
   return (
-    <div className="px-4 max-w-2xl mx-auto py-20">
+    <div 
+      className="px-4 max-w-2xl mx-auto py-20 min-h-screen"
+      style={{ backgroundColor: theme.colors.background }}
+    >
       {/* Surah Header */}
-      <h2 className="text-xl font-bold text-[#25D162] mb-4">
+      <h2 
+        className="text-xl font-bold mb-4"
+        style={{ color: theme.colors.primary }}
+      >
         {surah.englishName} - {surah.name}
       </h2>
 
@@ -55,33 +75,71 @@ const SurahDetail = () => {
         {arabicAyahs.map((ayah, index) => (
           <div
             key={ayah.number}
-            className="bg-white shadow-sm rounded-xl p-4 border border-gray-100"
+            className="shadow-sm rounded-xl p-4 border"
+            style={{ 
+              backgroundColor: theme.colors.cardBg,
+              borderColor: theme.colors.border 
+            }}
           >
-            <p className="text-sm font-bold text-gray-500 mb-2">({ayah.numberInSurah})</p>
+            <p 
+              className="text-sm font-bold mb-2"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              ({ayah.numberInSurah})
+            </p>
 
             {/* Arabic */}
-            <p className="text-right text-xl font-semibold mb-3">{ayah.text}</p>
+            <p 
+              className="text-right text-xl font-semibold mb-3"
+              style={{ color: theme.colors.text }}
+            >
+              {ayah.text}
+            </p>
 
             {/* Transliteration */}
             {translitAyahs[index] && (
-              <p className="text-sm text-gray-800 italic mb-2">
-                <span className="text-[#25D162] font-semibold">Transliteration</span> <br />
+              <p 
+                className="text-sm italic mb-2"
+                style={{ color: theme.colors.text }}
+              >
+                <span 
+                  className="font-semibold"
+                  style={{ color: theme.colors.primary }}
+                >
+                  Transliteration
+                </span> <br />
                 {translitAyahs[index].text}
               </p>
             )}
 
             {/* English Translation */}
             {englishAyahs[index] && (
-              <p className="text-sm text-gray-700">
-                <span className="text-[#25D162] font-semibold">English (Saheeh International)</span> <br />
+              <p 
+                className="text-sm"
+                style={{ color: theme.colors.text }}
+              >
+                <span 
+                  className="font-semibold"
+                  style={{ color: theme.colors.primary }}
+                >
+                  English (Saheeh International)
+                </span> <br />
                 {englishAyahs[index].text}
               </p>
             )}
 
             {/* Urdu Translation */}
             {urduAyahs[index] && (
-              <p className="text-sm text-gray-700 mt-2">
-                <span className="text-[#25D162] font-semibold">اردو (جالندھری)</span> <br />
+              <p 
+                className="text-sm mt-2"
+                style={{ color: theme.colors.text }}
+              >
+                <span 
+                  className="font-semibold"
+                  style={{ color: theme.colors.primary }}
+                >
+                  اردو (جالندھری)
+                </span> <br />
                 {urduAyahs[index].text}
               </p>
             )}
