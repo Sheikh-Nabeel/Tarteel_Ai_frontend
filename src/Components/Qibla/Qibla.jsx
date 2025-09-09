@@ -70,34 +70,50 @@ const Qibla = () => {
     if (!permissionGranted) return;
 
     let lastHeading = 0;
-    const smoothingFactor = 0.3; // Increased for more responsiveness
+    let animationFrame;
+    const smoothingFactor = 0.5; // Increased for better responsiveness
 
     const handleOrientation = (e) => {
       if (e.alpha !== null) {
-        let newHeading = e.alpha;
+        // Cancel previous animation frame
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+        }
         
-        // Apply magnetic declination correction
-        newHeading += magneticDeclination;
-        
-        // Normalize heading to 0-360 range
-        newHeading = (newHeading + 360) % 360;
-        
-        // Smooth the heading to reduce jitter while maintaining responsiveness
-        const smoothedHeading = lastHeading + smoothingFactor * (newHeading - lastHeading);
-        lastHeading = smoothedHeading;
-        
-        setHeading(smoothedHeading);
-        setAccuracy(e.webkitCompassAccuracy || null);
+        animationFrame = requestAnimationFrame(() => {
+          let newHeading = e.alpha;
+          
+          // Apply magnetic declination correction
+          newHeading += magneticDeclination;
+          
+          // Normalize heading to 0-360 range
+          newHeading = (newHeading + 360) % 360;
+          
+          // Handle 360/0 degree boundary smoothly
+          let headingDiff = newHeading - lastHeading;
+          if (headingDiff > 180) headingDiff -= 360;
+          if (headingDiff < -180) headingDiff += 360;
+          
+          // Smooth the heading to reduce jitter while maintaining responsiveness
+          const smoothedHeading = (lastHeading + smoothingFactor * headingDiff + 360) % 360;
+          lastHeading = smoothedHeading;
+          
+          setHeading(smoothedHeading);
+          setAccuracy(e.webkitCompassAccuracy || null);
+        });
       }
     };
 
     // Use higher frequency updates for better real-time response
-    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
-    window.addEventListener("deviceorientation", handleOrientation, true);
+    window.addEventListener("deviceorientationabsolute", handleOrientation, { passive: true });
+    window.addEventListener("deviceorientation", handleOrientation, { passive: true });
 
     return () => {
-      window.removeEventListener("deviceorientationabsolute", handleOrientation, true);
-      window.removeEventListener("deviceorientation", handleOrientation, true);
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+      window.removeEventListener("deviceorientationabsolute", handleOrientation);
+      window.removeEventListener("deviceorientation", handleOrientation);
     };
   }, [permissionGranted, magneticDeclination]);
 
@@ -212,7 +228,7 @@ const Qibla = () => {
         {/* Compass Rose that rotates with device heading */}
         <motion.div
           animate={{ rotate: -heading }}
-          transition={{ type: "spring", stiffness: 120, damping: 25, mass: 0.8 }}
+          transition={{ type: "tween", duration: 0.1, ease: "linear" }}
           className="absolute w-full h-full"
         >
           {/* Cardinal directions */}
@@ -237,7 +253,7 @@ const Qibla = () => {
           {/* Qibla Direction Indicator (Fixed relative to North) */}
           <motion.div
             animate={{ rotate: qiblaDirection }}
-            transition={{ type: "spring", stiffness: 100, damping: 20, mass: 0.6 }}
+            transition={{ type: "tween", duration: 0.1, ease: "linear" }}
             className="absolute w-1 h-32 bg-gradient-to-t from-green-600 to-green-400 rounded-full top-6 left-1/2 transform -translate-x-1/2 origin-bottom shadow-lg"
           >
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
