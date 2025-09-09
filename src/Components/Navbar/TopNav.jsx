@@ -57,7 +57,7 @@ const TopNav = () => {
 
   return (
     <div 
-      className="fixed top-0 left-0 right-0 shadow-md z-40"
+      className="sticky top-0 left-0 right-0 shadow-md z-40"
       style={{
         backgroundColor: theme.colors.background,
         borderColor: theme.colors.border

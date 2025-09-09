@@ -141,3 +141,31 @@ body {
 .dark .card-hover:hover {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
+
+
+.clip-notch {
+  clip-path: polygon(0 0, 0 100%, 25% 100%, 50% 100%, 75% 100%, 100% 100%, 100% 0);
+}
+
+.clip-notch::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* Smooth bounce animation */
+@keyframes bounceUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-bounce {
+  animation: bounceUp 0.8s infinite;
+}

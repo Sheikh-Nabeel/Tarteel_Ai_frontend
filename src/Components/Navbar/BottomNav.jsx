@@ -1,61 +1,80 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-
-// ✅ Import icons
-import { ImHome } from 'react-icons/im';
-import { GiOpenBook, GiCompass } from 'react-icons/gi';
-import { MdMenuBook } from 'react-icons/md';
-import { FaPrayingHands } from 'react-icons/fa';  // ✅ correct one
-import { useTheme } from '../../contexts/ThemeContext';
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { GiOpenBook, GiCompass } from "react-icons/gi";
+import { MdMenuBook } from "react-icons/md";
+import { ImHome } from "react-icons/im";
+import { FaPrayingHands } from "react-icons/fa";
 
 const BottomNav = () => {
   const location = useLocation();
-  const theme = useTheme();
+  const [active, setActive] = useState(location.pathname);
+
+  const navItems = [
+    { path: "/quran", label: "Quran", icon: <GiOpenBook />, key: "quran" },
+    { path: "/hadith", label: "Hadith", icon: <MdMenuBook />, key: "hadith" },
+    { path: "/", label: "Home", icon: <ImHome />, key: "home" },
+    {
+      path: "/ibadat",
+      label: "Ibadat",
+      icon: <FaPrayingHands />,
+      key: "ibadat",
+    },
+    { path: "/qibla", label: "Qibla", icon: <GiCompass />, key: "qibla" },
+  ];
+
+  const getIndicatorPosition = (path) => {
+    const index = navItems.findIndex((item) => item.path === path);
+    return `${(index * 100) / navItems.length + 50 / navItems.length}%`;
+  };
 
   return (
-    <>
-      <div
-        className="fixed bottom-2 left-1/2 -translate-x-1/2 shadow-xl rounded-full flex justify-around max-lg:rounded-none items-center w-[100%]  max-w-2xl px-2 py-2 z-50"
-        style={{
-          backgroundColor: theme.colors.background,
-          borderColor: theme.colors.border
-        }}
-      >
-        <NavItem to="/quran" icon={GiOpenBook} label="Quran" theme={theme} />
-        <NavItem to="/hadith" icon={MdMenuBook} label="Hadith" theme={theme} />
-        <NavItem to="/" icon={ImHome} label="Home" theme={theme} />
-        <NavItem to="/ibadat" icon={FaPrayingHands} label="Ibadat" theme={theme} />
-        <NavItem to="/qibla" icon={GiCompass} label="Qibla" theme={theme} />
-      </div>
-    </>
-  );
-};
-
-// 🔹 NavItem with theme integration
-const NavItem = ({ to, icon: Icon, label, theme }) => (
-  <NavLink
-    to={to}
-    className="flex flex-col items-center cursor-pointer transition-all duration-200"
-  >
-    {({ isActive }) => (
-      <>
-        <Icon 
-          className="text-lg" 
-          style={{ 
-            color: isActive ? theme.colors.primary : theme.colors.textSecondary 
-          }} 
-        />
-        <span 
-          className="text-[.7rem] font-medium"
-          style={{ 
-            color: isActive ? theme.colors.primary : theme.colors.textSecondary 
+    <div className="fixed bottom-0 w-full z-50">
+      <div className="relative max-w-md mx-auto backdrop-blur-sm border-t rounded-t-3xl shadow-2xl bg-white border-gray-200 dark:bg-[#1e1e1e] dark:border-gray-700">
+        {/* Floating Active Indicator */}
+        <div
+          className="absolute top-0 w-14 h-14 bg-gradient-to-br from-primary to-custom-black rounded-full shadow-lg transform -translate-y-1/2 flex items-center justify-center transition-all duration-500 ease-out"
+          style={{
+            left: getIndicatorPosition(active),
+            transform: "translateX(-50%) translateY(-50%)",
           }}
         >
-          {label}
-        </span>
-      </>
-    )}
-  </NavLink>
-);
+          <div className="text-white text-2xl">
+            {React.cloneElement(
+              navItems.find((item) => item.path === active)?.icon,
+              { className: "w-6 h-6" }
+            )}
+          </div>
+        </div>
+
+        {/* Navigation Items */}
+        <div className="flex justify-around items-center h-16">
+          {navItems.map((item) => (
+            <Link
+              to={item.path}
+              key={item.key}
+              onClick={() => setActive(item.path)}
+              className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-300 ${
+                active === item.path
+                  ? "text-primary font-semibold"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
+            >
+              <div
+                className={`text-xl transition-all duration-300 ${
+                  active === item.path
+                    ? "opacity-0 scale-0"
+                    : "opacity-100 scale-100"
+                }`}
+              >
+                {React.cloneElement(item.icon, { className: "w-6 h-6" })}
+              </div>
+              <span className="text-xs mt-1 font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default BottomNav;
