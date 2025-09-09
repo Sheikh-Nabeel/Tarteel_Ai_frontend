@@ -105,7 +105,7 @@ const Settings = () => {
             Settings
           </h1>
           <p style={{ color: theme.colors.textSecondary }}>
-            Customize your Tarteel AI experience
+            Customize your Quranic Tajweed experience
           </p>
         </div>
 

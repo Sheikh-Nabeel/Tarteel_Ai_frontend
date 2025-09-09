@@ -34,7 +34,7 @@ const TopNav = () => {
         if (location.pathname.startsWith('/quran/')) {
           return 'Surah Details';
         }
-        return 'Tarteel AI';
+        return 'Quranic Tajweed';
     }
   };
 
