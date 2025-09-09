@@ -189,8 +189,25 @@ const Qibla = () => {
         className="relative w-80 h-80 rounded-full flex items-center justify-center 
         bg-white/50 dark:bg-gray-900/60 shadow-2xl backdrop-blur-xl border border-white/20 overflow-hidden z-10"
       >
-        {/* Compass Rose Background */}
-        <div className="absolute w-full h-full rounded-full">
+        {/* Static compass background */}
+        <div className="absolute w-full h-full rounded-full"></div>
+
+        {/* Pulsing Glow Ring */}
+        <motion.div
+          className={`absolute w-72 h-72 rounded-full border-2 ${
+            Math.abs(qiblaAngle) < 5 ? 'border-green-500' : 
+            Math.abs(qiblaAngle) < 15 ? 'border-yellow-500' : 'border-red-500/40'
+          }`}
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        ></motion.div>
+
+        {/* Compass Rose that rotates with device heading */}
+        <motion.div
+          animate={{ rotate: -heading }}
+          transition={{ type: "spring", stiffness: 80, damping: 20 }}
+          className="absolute w-full h-full"
+        >
           {/* Cardinal directions */}
           <div className="absolute top-2 left-1/2 transform -translate-x-1/2 text-xs font-bold" style={{ color: theme.colors.text }}>N</div>
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-bold" style={{ color: theme.colors.text }}>S</div>
@@ -209,39 +226,25 @@ const Qibla = () => {
               />
             );
           })}
-        </div>
 
-        {/* Pulsing Glow Ring */}
-        <motion.div
-          className={`absolute w-72 h-72 rounded-full border-2 ${
-            Math.abs(qiblaAngle) < 5 ? 'border-green-500' : 
-            Math.abs(qiblaAngle) < 15 ? 'border-yellow-500' : 'border-red-500/40'
-          }`}
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        ></motion.div>
-
-        {/* Qibla Direction Indicator (Fixed) */}
-        <motion.div
-          animate={{ rotate: qiblaDirection }}
-          transition={{ type: "spring", stiffness: 50, damping: 15 }}
-          className="absolute w-1 h-32 bg-gradient-to-t from-green-600 to-green-400 rounded-full top-6 left-1/2 transform -translate-x-1/2 origin-bottom shadow-lg"
-        >
-          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-            <FaMapMarkerAlt className="text-green-600 text-lg drop-shadow-md" />
-          </div>
+          {/* Qibla Direction Indicator (Fixed relative to North) */}
+          <motion.div
+            animate={{ rotate: qiblaDirection }}
+            transition={{ type: "spring", stiffness: 50, damping: 15 }}
+            className="absolute w-1 h-32 bg-gradient-to-t from-green-600 to-green-400 rounded-full top-6 left-1/2 transform -translate-x-1/2 origin-bottom shadow-lg"
+          >
+            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+              <FaMapMarkerAlt className="text-green-600 text-lg drop-shadow-md" />
+            </div>
+          </motion.div>
         </motion.div>
 
-        {/* Device Heading Needle */}
-        <motion.div
-          animate={{ rotate: heading }}
-          transition={{ type: "spring", stiffness: 80, damping: 20 }}
-          className="absolute w-0.5 h-28 bg-gradient-to-t from-blue-600 to-blue-400 rounded-full top-10 left-1/2 transform -translate-x-1/2 origin-bottom"
-        >
+        {/* Device Heading Needle (Always points North) */}
+        <div className="absolute w-0.5 h-28 bg-gradient-to-t from-red-600 to-red-400 rounded-full top-10 left-1/2 transform -translate-x-1/2 origin-bottom">
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2">
-            <FaLocationArrow className="text-blue-600 text-sm" />
+            <FaLocationArrow className="text-red-600 text-sm" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Center Circle */}
         <div className="absolute w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 border-2 border-white shadow-lg flex items-center justify-center">
