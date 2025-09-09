@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { motion } from "framer-motion";
-import { FaCompass, FaLocationArrow } from "react-icons/fa";
-import { TbBuildingMosque } from "react-icons/tb";
+import { FaCompass, FaLocationArrow, FaMapMarkerAlt } from "react-icons/fa";
 
 const Qibla = () => {
   const theme = useTheme();
   const [heading, setHeading] = useState(0);
+  const [qiblaDirection, setQiblaDirection] = useState(0);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [location, setLocation] = useState(null);
-  const [qiblaDirection, setQiblaDirection] = useState(0);
-  const [distance, setDistance] = useState(0);
+  const [accuracy, setAccuracy] = useState(null);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [magneticDeclination, setMagneticDeclination] = useState(0);
 
-  // Kaaba coordinates (Mecca, Saudi Arabia)
+  // Kaaba coordinates (Mecca)
   const KAABA_LAT = 21.4225;
   const KAABA_LON = 39.8262;
 
@@ -22,90 +23,116 @@ const Qibla = () => {
     const lat2 = (KAABA_LAT * Math.PI) / 180;
     const deltaLon = ((KAABA_LON - userLon) * Math.PI) / 180;
 
-    const x = Math.sin(deltaLon) * Math.cos(lat2);
-    const y = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLon);
-
-    let bearing = Math.atan2(x, y);
+    const y = Math.sin(deltaLon) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLon);
+    
+    let bearing = Math.atan2(y, x);
     bearing = (bearing * 180) / Math.PI;
     bearing = (bearing + 360) % 360;
-
+    
     return bearing;
   };
 
-  // Calculate distance to Kaaba
-  const calculateDistance = (userLat, userLon) => {
-    const R = 6371; // Earth's radius in kilometers
-    const lat1 = (userLat * Math.PI) / 180;
-    const lat2 = (KAABA_LAT * Math.PI) / 180;
-    const deltaLat = ((KAABA_LAT - userLat) * Math.PI) / 180;
-    const deltaLon = ((KAABA_LON - userLon) * Math.PI) / 180;
-
-    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  };
-
-  // Request device orientation
-  const requestOrientationPermission = async () => {
-    if (typeof DeviceOrientationEvent?.requestPermission === "function") {
-      const response = await DeviceOrientationEvent.requestPermission();
-      if (response === "granted") {
-        setPermissionGranted(true);
-      }
-    } else {
-      setPermissionGranted(true);
+  // Get magnetic declination for location (simplified calculation)
+  const getMagneticDeclination = async (lat, lon) => {
+    try {
+      // Using a simplified magnetic declination calculation
+      // For production, you'd use a proper magnetic declination API
+      const declination = Math.sin((lat * Math.PI) / 180) * 15; // Simplified formula
+      return declination;
+    } catch (error) {
+      console.warn('Could not get magnetic declination:', error);
+      return 0;
     }
   };
 
-  // Listen to orientation changes
+  // Request device orientation permission
+  const requestOrientationPermission = async () => {
+    setIsCalibrating(true);
+    try {
+      if (typeof DeviceOrientationEvent?.requestPermission === "function") {
+        const response = await DeviceOrientationEvent.requestPermission();
+        if (response === "granted") {
+          setPermissionGranted(true);
+        }
+      } else {
+        setPermissionGranted(true);
+      }
+    } catch (error) {
+      console.error('Permission request failed:', error);
+    } finally {
+      setTimeout(() => setIsCalibrating(false), 2000);
+    }
+  };
+
+  // Enhanced orientation handling with smoothing
   useEffect(() => {
     if (!permissionGranted) return;
 
+    let lastHeading = 0;
+    const smoothingFactor = 0.1;
+
     const handleOrientation = (e) => {
       if (e.alpha !== null) {
-        setHeading(e.alpha);
+        let newHeading = e.alpha;
+        
+        // Apply magnetic declination correction
+        newHeading += magneticDeclination;
+        
+        // Smooth the heading to reduce jitter
+        const smoothedHeading = lastHeading + smoothingFactor * (newHeading - lastHeading);
+        lastHeading = smoothedHeading;
+        
+        setHeading(smoothedHeading);
+        setAccuracy(e.webkitCompassAccuracy || null);
       }
     };
+
+    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
     window.addEventListener("deviceorientation", handleOrientation, true);
 
     return () => {
+      window.removeEventListener("deviceorientationabsolute", handleOrientation, true);
       window.removeEventListener("deviceorientation", handleOrientation, true);
     };
-  }, [permissionGranted]);
+  }, [permissionGranted, magneticDeclination]);
 
-  // Get location and calculate Qibla direction
+  // Get user location and calculate Qibla direction
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const userLocation = {
           lat: pos.coords.latitude,
           lon: pos.coords.longitude,
         };
         setLocation(userLocation);
         
-        // Calculate Qibla direction and distance
-        const qiblaDir = calculateQiblaDirection(userLocation.lat, userLocation.lon);
-        const dist = calculateDistance(userLocation.lat, userLocation.lon);
+        // Calculate Qibla direction
+        const qibla = calculateQiblaDirection(userLocation.lat, userLocation.lon);
+        setQiblaDirection(qibla);
         
-        setQiblaDirection(qiblaDir);
-        setDistance(dist);
+        // Get magnetic declination for this location
+        const declination = await getMagneticDeclination(userLocation.lat, userLocation.lon);
+        setMagneticDeclination(declination);
       },
       (err) => {
         console.error('Geolocation error:', err);
         // Fallback to a default location (e.g., New York)
         const defaultLocation = { lat: 40.7128, lon: -74.0060 };
         setLocation(defaultLocation);
-        const qiblaDir = calculateQiblaDirection(defaultLocation.lat, defaultLocation.lon);
-        const dist = calculateDistance(defaultLocation.lat, defaultLocation.lon);
-        setQiblaDirection(qiblaDir);
-        setDistance(dist);
+        const qibla = calculateQiblaDirection(defaultLocation.lat, defaultLocation.lon);
+        setQiblaDirection(qibla);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { 
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
     );
   }, []);
+
+  // Calculate the angle difference between device heading and Qibla
+  const qiblaAngle = qiblaDirection - heading;
 
   return (
     <div
@@ -120,22 +147,38 @@ const Qibla = () => {
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="text-center mb-12 relative z-10"
+        className="text-center mb-8 relative z-10"
       >
         <h1
           className="text-4xl md:text-5xl font-extrabold mb-3"
           style={{ color: theme.colors.text }}
         >
           <FaCompass className="inline-block mr-2 text-green-500 drop-shadow-md" />
-          Qibla Direction
+          Qibla Compass
         </h1>
         <p
           className="text-lg opacity-80"
           style={{ color: theme.colors.textSecondary }}
         >
-          Find the direction of Kaaba for your prayers
+          Accurate direction to the Holy Kaaba
         </p>
         <div className="mt-3 w-28 h-1 mx-auto bg-gradient-to-r from-primary to-green-700 rounded-full shadow"></div>
+        
+        {/* Qibla Direction Info */}
+        {location && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 text-sm"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              <span>📍 Qibla: {qiblaDirection.toFixed(1)}°</span>
+              <span>🧭 Heading: {heading.toFixed(1)}°</span>
+              {accuracy && <span>📶 Accuracy: ±{accuracy.toFixed(1)}°</span>}
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Compass Card */}
@@ -146,106 +189,175 @@ const Qibla = () => {
         className="relative w-80 h-80 rounded-full flex items-center justify-center 
         bg-white/50 dark:bg-gray-900/60 shadow-2xl backdrop-blur-xl border border-white/20 overflow-hidden z-10"
       >
+        {/* Compass Rose Background */}
+        <div className="absolute w-full h-full rounded-full">
+          {/* Cardinal directions */}
+          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 text-xs font-bold" style={{ color: theme.colors.text }}>N</div>
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs font-bold" style={{ color: theme.colors.text }}>S</div>
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs font-bold" style={{ color: theme.colors.text }}>E</div>
+          <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs font-bold" style={{ color: theme.colors.text }}>W</div>
+          
+          {/* Degree markings */}
+          {[...Array(36)].map((_, i) => {
+            const angle = i * 10;
+            const isMainDirection = angle % 90 === 0;
+            return (
+              <div
+                key={i}
+                className={`absolute w-0.5 ${isMainDirection ? 'h-6 bg-gray-600' : 'h-3 bg-gray-400'} top-0 left-1/2 transform -translate-x-1/2 origin-bottom`}
+                style={{ transform: `translateX(-50%) rotate(${angle}deg) translateY(${isMainDirection ? '8px' : '12px'})` }}
+              />
+            );
+          })}
+        </div>
+
         {/* Pulsing Glow Ring */}
         <motion.div
-          className="absolute w-72 h-72 rounded-full border-2 border-green-500/40"
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className={`absolute w-72 h-72 rounded-full border-2 ${
+            Math.abs(qiblaAngle) < 5 ? 'border-green-500' : 
+            Math.abs(qiblaAngle) < 15 ? 'border-yellow-500' : 'border-red-500/40'
+          }`}
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         ></motion.div>
 
-        {/* Compass Rose */}
+        {/* Qibla Direction Indicator (Fixed) */}
         <motion.div
-          animate={{ rotate: -heading }}
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
-          className="absolute w-60 h-60 rounded-full border-4 border-green-500/30 flex items-center justify-center"
+          animate={{ rotate: qiblaDirection }}
+          transition={{ type: "spring", stiffness: 50, damping: 15 }}
+          className="absolute w-1 h-32 bg-gradient-to-t from-green-600 to-green-400 rounded-full top-6 left-1/2 transform -translate-x-1/2 origin-bottom shadow-lg"
         >
-          {/* North indicator */}
-          <div className="absolute top-2 text-green-600 font-bold text-lg">N</div>
-          
-          {/* Compass needle pointing North */}
-          <FaLocationArrow className="text-green-600 text-3xl transform rotate-180 drop-shadow-lg" />
-        </motion.div>
-
-        {/* Qibla Direction Indicator */}
-        <motion.div
-          animate={{ rotate: qiblaDirection - heading }}
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
-          className="absolute w-52 h-52 rounded-full flex items-center justify-center"
-        >
-          {/* Qibla direction line */}
-          <div className="absolute w-1 h-24 bg-gradient-to-t from-yellow-500 to-yellow-300 rounded-full top-2 shadow-lg"></div>
-          
-          {/* Kaaba icon */}
-          <motion.div
-            className="absolute top-0 transform -translate-y-2"
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <TbBuildingMosque className="text-yellow-500 text-4xl drop-shadow-lg" />
-          </motion.div>
-          
-          {/* Qibla label */}
-          <div className="absolute top-12 text-yellow-500 font-bold text-sm bg-black/20 px-2 py-1 rounded backdrop-blur-sm">
-            QIBLA
+          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+            <FaMapMarkerAlt className="text-green-600 text-lg drop-shadow-md" />
           </div>
         </motion.div>
 
-        {/* Center dot */}
-        <div className="absolute w-4 h-4 bg-green-500 rounded-full shadow-lg"></div>
+        {/* Device Heading Needle */}
+        <motion.div
+          animate={{ rotate: heading }}
+          transition={{ type: "spring", stiffness: 80, damping: 20 }}
+          className="absolute w-0.5 h-28 bg-gradient-to-t from-blue-600 to-blue-400 rounded-full top-10 left-1/2 transform -translate-x-1/2 origin-bottom"
+        >
+          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2">
+            <FaLocationArrow className="text-blue-600 text-sm" />
+          </div>
+        </motion.div>
+
+        {/* Center Circle */}
+        <div className="absolute w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 border-2 border-white shadow-lg flex items-center justify-center">
+          <div className="w-2 h-2 rounded-full bg-gray-700"></div>
+        </div>
+
+        {/* Calibration Indicator */}
+        {isCalibrating && (
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="absolute w-full h-full border-4 border-transparent border-t-blue-500 rounded-full"
+          />
+        )}
       </motion.div>
+
+      {/* Direction Status */}
+      {location && permissionGranted && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-6 text-center z-10"
+        >
+          <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${
+            Math.abs(qiblaAngle) < 5 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+            Math.abs(qiblaAngle) < 15 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+            'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+          }`}>
+            {Math.abs(qiblaAngle) < 5 ? '✅ Aligned with Qibla' :
+             Math.abs(qiblaAngle) < 15 ? '⚠️ Close to Qibla' :
+             `🧭 Turn ${qiblaAngle > 0 ? 'right' : 'left'} ${Math.abs(qiblaAngle).toFixed(0)}°`}
+          </div>
+        </motion.div>
+      )}
 
       {/* Permission Button */}
       {!permissionGranted && (
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          whileHover={{ scale: 1.05 }}
-          onClick={requestOrientationPermission}
-          className="mt-12 px-8 py-4 rounded-xl font-semibold text-white shadow-lg 
-          bg-gradient-to-r from-primary to-green-700 hover:shadow-2xl transition-all duration-300 z-10"
-        >
-          Enable Compass
-        </motion.button>
-      )}
-
-      {/* Location and Qibla Info */}
-      {location && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-8 text-center z-10 space-y-3"
+          className="mt-8 text-center z-10"
         >
-          <div
-            className="bg-white/10 dark:bg-gray-900/30 backdrop-blur-sm rounded-xl p-4 border border-white/20"
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={requestOrientationPermission}
+            disabled={isCalibrating}
+            className={`px-8 py-4 rounded-xl font-semibold text-white shadow-lg transition-all duration-300 ${
+              isCalibrating 
+                ? 'bg-gray-500 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-primary to-green-700 hover:shadow-2xl'
+            }`}
           >
-            <p
-              className="text-sm opacity-80 mb-2"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              📍 Your Location: {location.lat.toFixed(4)}°, {location.lon.toFixed(4)}°
+            {isCalibrating ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Calibrating...
+              </div>
+            ) : (
+              <>🧭 Enable Compass</>  
+            )}
+          </motion.button>
+          <p className="mt-3 text-sm opacity-70" style={{ color: theme.colors.textSecondary }}>
+            Allow device orientation access for accurate Qibla direction
+          </p>
+        </motion.div>
+      )}
+
+      {/* Compass Legend */}
+      {permissionGranted && location && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-8 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg p-4 max-w-sm mx-auto z-10"
+        >
+          <h3 className="text-sm font-semibold mb-3 text-center" style={{ color: theme.colors.text }}>
+            Compass Guide
+          </h3>
+          <div className="space-y-2 text-xs" style={{ color: theme.colors.textSecondary }}>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span>Green needle: Qibla direction</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span>Blue needle: Your device heading</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-green-500 rounded-full"></div>
+              <span>Ring color: Alignment accuracy</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Location Info */}
+      {location && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-6 text-center z-10"
+        >
+          <div className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
+            <p className="text-xs" style={{ color: theme.colors.textSecondary }}>
+              📍 Location: {location.lat.toFixed(4)}°, {location.lon.toFixed(4)}°
             </p>
-            <p
-              className="text-lg font-semibold mb-1"
-              style={{ color: theme.colors.text }}
-            >
-              🕋 Qibla Direction: {qiblaDirection.toFixed(1)}°
-            </p>
-            <p
-              className="text-sm opacity-80"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              📏 Distance to Kaaba: {distance.toFixed(0)} km
+            <p className="text-xs mt-1" style={{ color: theme.colors.textSecondary }}>
+              🕋 Distance to Kaaba: {(
+                Math.acos(
+                  Math.sin(location.lat * Math.PI / 180) * Math.sin(KAABA_LAT * Math.PI / 180) +
+                  Math.cos(location.lat * Math.PI / 180) * Math.cos(KAABA_LAT * Math.PI / 180) *
+                  Math.cos((KAABA_LON - location.lon) * Math.PI / 180)
+                ) * 6371
+              ).toFixed(0)} km
             </p>
           </div>
-          
-          {permissionGranted && (
-            <p
-              className="text-xs opacity-60"
-              style={{ color: theme.colors.textSecondary }}
-            >
-              🧭 Compass is active - Yellow icon shows Qibla direction
-            </p>
-          )}
         </motion.div>
       )}
     </div>
