@@ -65,12 +65,12 @@ const Qibla = () => {
     }
   };
 
-  // Enhanced orientation handling with smoothing
+  // Enhanced orientation handling with real-time updates
   useEffect(() => {
     if (!permissionGranted) return;
 
     let lastHeading = 0;
-    const smoothingFactor = 0.1;
+    const smoothingFactor = 0.3; // Increased for more responsiveness
 
     const handleOrientation = (e) => {
       if (e.alpha !== null) {
@@ -79,7 +79,10 @@ const Qibla = () => {
         // Apply magnetic declination correction
         newHeading += magneticDeclination;
         
-        // Smooth the heading to reduce jitter
+        // Normalize heading to 0-360 range
+        newHeading = (newHeading + 360) % 360;
+        
+        // Smooth the heading to reduce jitter while maintaining responsiveness
         const smoothedHeading = lastHeading + smoothingFactor * (newHeading - lastHeading);
         lastHeading = smoothedHeading;
         
@@ -88,6 +91,7 @@ const Qibla = () => {
       }
     };
 
+    // Use higher frequency updates for better real-time response
     window.addEventListener("deviceorientationabsolute", handleOrientation, true);
     window.addEventListener("deviceorientation", handleOrientation, true);
 
@@ -131,8 +135,11 @@ const Qibla = () => {
     );
   }, []);
 
-  // Calculate the angle difference between device heading and Qibla
-  const qiblaAngle = qiblaDirection - heading;
+  // Calculate the relative angle between device heading and Qibla direction
+  let qiblaAngle = qiblaDirection - heading;
+  // Normalize to -180 to 180 range for proper direction indication
+  if (qiblaAngle > 180) qiblaAngle -= 360;
+  if (qiblaAngle < -180) qiblaAngle += 360;
 
   return (
     <div
@@ -205,7 +212,7 @@ const Qibla = () => {
         {/* Compass Rose that rotates with device heading */}
         <motion.div
           animate={{ rotate: -heading }}
-          transition={{ type: "spring", stiffness: 80, damping: 20 }}
+          transition={{ type: "spring", stiffness: 120, damping: 25, mass: 0.8 }}
           className="absolute w-full h-full"
         >
           {/* Cardinal directions */}
@@ -230,11 +237,11 @@ const Qibla = () => {
           {/* Qibla Direction Indicator (Fixed relative to North) */}
           <motion.div
             animate={{ rotate: qiblaDirection }}
-            transition={{ type: "spring", stiffness: 50, damping: 15 }}
+            transition={{ type: "spring", stiffness: 100, damping: 20, mass: 0.6 }}
             className="absolute w-1 h-32 bg-gradient-to-t from-green-600 to-green-400 rounded-full top-6 left-1/2 transform -translate-x-1/2 origin-bottom shadow-lg"
           >
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-              <FaMapMarkerAlt className="text-green-600 text-lg drop-shadow-md" />
+              <FaLocationArrow className="text-green-600 text-xl drop-shadow-md" />
             </div>
           </motion.div>
         </motion.div>
@@ -275,7 +282,7 @@ const Qibla = () => {
           }`}>
             {Math.abs(qiblaAngle) < 5 ? '✅ Aligned with Qibla' :
              Math.abs(qiblaAngle) < 15 ? '⚠️ Close to Qibla' :
-             `🧭 Turn ${qiblaAngle > 0 ? 'right' : 'left'} ${Math.abs(qiblaAngle).toFixed(0)}°`}
+             `🧭 Turn ${qiblaAngle > 0 ? 'left' : 'right'} ${Math.abs(qiblaAngle).toFixed(0)}°`}
           </div>
         </motion.div>
       )}
