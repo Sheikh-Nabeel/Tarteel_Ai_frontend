@@ -232,7 +232,7 @@ const Home = () => {
     setUseManualLocation(false);
     setManualLocation(null);
     setLoading(true);
-  };
+  }; 
 
   // Format to 12-hour with AM/PM
   const formatTo12Hour = (timeStr) => {
