@@ -26,10 +26,15 @@ const Home = () => {
   const [mapLoading, setMapLoading] = useState(false);
   const [useManualLocation, setUseManualLocation] = useState(false);
   const [manualLocation, setManualLocation] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
   const markerRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const GOOGLE_API_KEY = "AIzaSyBCZ15zo1KEU63Ji7PrMmloxRX0HDU6vV0";
 
@@ -154,10 +159,58 @@ const Home = () => {
     const map = new google.maps.Map(mapRef.current, {
       center: { lat: 33.5651, lng: 73.0169 }, // Default to Rawalpindi
       zoom: 10,
-      mapTypeId: 'roadmap'
+      mapTypeId: 'roadmap',
+      gestureHandling: 'cooperative',
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false
     });
 
     googleMapRef.current = map;
+
+    // Initialize Places Autocomplete
+    if (searchInputRef.current && window.google.maps.places) {
+      const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
+        types: ['(cities)'],
+        fields: ['place_id', 'geometry', 'name', 'formatted_address']
+      });
+      
+      autocompleteRef.current = autocomplete;
+      
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          
+          // Center map on selected place
+          map.setCenter({ lat, lng });
+          map.setZoom(12);
+          
+          // Add marker
+          if (markerRef.current) {
+            markerRef.current.setMap(null);
+          }
+          
+          const marker = new google.maps.Marker({
+            position: { lat, lng },
+            map: map,
+            title: place.name || 'Selected Location'
+          });
+          markerRef.current = marker;
+          
+          // Extract location details
+          const addressComponents = place.formatted_address ? place.formatted_address.split(', ') : [];
+          const city = place.name || addressComponents[0] || "Selected Location";
+          const country = addressComponents[addressComponents.length - 1] || "Unknown";
+          
+          setManualLocation({ city, country, lat, lng });
+          setSearchQuery(place.formatted_address || place.name || "");
+          setShowSuggestions(false);
+        }
+      });
+    }
 
     // Add click listener to map
     map.addListener('click', (event) => {
@@ -207,16 +260,44 @@ const Home = () => {
   // Handle map modal
   const openMapModal = () => {
     setShowMapModal(true);
-    setTimeout(initializeMap, 100); // Wait for modal to render
+    setMapLoading(true);
+    
+    // Lazy load map with better performance
+    setTimeout(() => {
+      if (window.google && window.google.maps) {
+        initializeMap();
+        setMapLoading(false);
+      } else {
+        // Fallback if Google Maps isn't loaded yet
+        const checkGoogleMaps = setInterval(() => {
+          if (window.google && window.google.maps) {
+            initializeMap();
+            setMapLoading(false);
+            clearInterval(checkGoogleMaps);
+          }
+        }, 100);
+        
+        // Clear interval after 10 seconds to prevent infinite checking
+        setTimeout(() => {
+          clearInterval(checkGoogleMaps);
+          setMapLoading(false);
+        }, 10000);
+      }
+    }, 150); // Slightly longer delay for better modal rendering
   };
 
   const closeMapModal = () => {
     setShowMapModal(false);
+    setSearchQuery("");
+    setShowSuggestions(false);
     if (googleMapRef.current) {
       googleMapRef.current = null;
     }
     if (markerRef.current) {
       markerRef.current = null;
+    }
+    if (autocompleteRef.current) {
+      autocompleteRef.current = null;
     }
   };
 
@@ -468,16 +549,31 @@ const Home = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg h-[450px] flex flex-col shadow-2xl">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                Select Your Location
-              </h3>
-              <button
-                onClick={closeMapModal}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <FaTimes className="text-gray-500" />
-              </button>
+            <div className="p-4 border-b dark:border-gray-700">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                  Select Your Location
+                </h3>
+                <button
+                  onClick={closeMapModal}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <FaTimes className="text-gray-500" />
+                </button>
+              </div>
+              
+              {/* Search Input */}
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search for a city or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <FaMapMarkerAlt className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              </div>
             </div>
 
             {/* Map Container - Reduced height */}
@@ -488,11 +584,14 @@ const Home = () => {
               />
               
               {mapLoading && (
-                <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center gap-3">
-                    <FaSpinner className="animate-spin text-green-500" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
-                      Getting location details...
+                <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm flex items-center justify-center">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center gap-3 shadow-lg">
+                    <FaSpinner className="animate-spin text-green-500 text-2xl" />
+                    <span className="text-sm text-gray-600 dark:text-gray-300 text-center">
+                      Loading interactive map...
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Please wait while we prepare your location selector
                     </span>
                   </div>
                 </div>
@@ -524,9 +623,14 @@ const Home = () => {
             {/* Instructions */}
             {!manualLocation && (
               <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  Click anywhere on the map to select your prayer time location
-                </p>
+                <div className="text-center space-y-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    🔍 Search for a city above or click anywhere on the map
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    Use the search box for faster location finding
+                  </p>
+                </div>
               </div>
             )}
           </div>
