@@ -324,7 +324,7 @@ const Home = () => {
     return (
       <div className="min-h-screen bg-light-bg dark:bg-dark-bg flex items-center justify-center">
         <div className="text-center">
-          <FaSpinner className="animate-spin text-4xl text-[#25d162] mb-4 mx-auto" />
+          <FaSpinner className="animate-spin text-4xl text-green-500 mb-4 mx-auto" />
           <p className="text-gray-600 dark:text-gray-300">Getting your location...</p>
         </div>
       </div>
@@ -334,13 +334,13 @@ const Home = () => {
   return (
     <div className="min-h-screen pb-20 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors">
       {/* Header */}
-      <div className="bg-gradient-to-b from-[#25d162] to-[#1d1d1d] p-6 shadow-lg rounded-b-3xl text-white">
+      <div className="bg-gradient-to-b from-green-500 to-gray-800 p-6 shadow-lg rounded-b-3xl text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <FaMapMarkerAlt className="text-sm opacity-70" />
             <p className="text-sm opacity-90">
               {currentDisplayLocation.city}, {currentDisplayLocation.country}
-              {useManualLocation && <span className="text-[#25d162] ml-1">(Manual)</span>}
+              {useManualLocation && <span className="text-green-400 ml-1">(Manual)</span>}
             </p>
           </div>
           <div className="flex gap-2">
@@ -348,7 +348,7 @@ const Home = () => {
               onClick={useCurrentLocation}
               className={`p-2 rounded-lg transition-all ${
                 !useManualLocation 
-                  ? 'bg-[#25d162] text-white' 
+                  ? 'bg-green-500 text-white' 
                   : 'bg-white/20 hover:bg-white/30'
               }`}
               title="Use current location"
@@ -359,7 +359,7 @@ const Home = () => {
               onClick={openMapModal}
               className={`p-2 rounded-lg transition-all ${
                 useManualLocation 
-                  ? 'bg-[#25d162] text-white' 
+                  ? 'bg-green-500 text-white' 
                   : 'bg-white/20 hover:bg-white/30'
               }`}
               title="Select location manually"
@@ -380,7 +380,7 @@ const Home = () => {
         {nextPrayer && (
           <p className="text-xs mt-1 text-gray-200">
             {nextPrayer.label} is only{" "}
-            <span className="text-[#25d162] font-semibold">
+            <span className="text-green-400 font-semibold">
               {getCountdown()}
             </span>{" "}
             away
@@ -402,9 +402,9 @@ const Home = () => {
                 key={i}
                 className="bg-white/10 backdrop-blur-md rounded-xl p-2 flex flex-col items-center shadow-md"
               >
-                <div className="text-lg mb-1 text-[#25d162]">{p.icon}</div>
+                <div className="text-lg mb-1 text-green-400">{p.icon}</div>
                 <p className="font-semibold">{p.label}</p>
-                <p className="text-[#25d162] font-bold">
+                <p className="text-green-400 font-bold">
                   {formatTo12Hour(p.time)}
                 </p>
               </div>
@@ -413,7 +413,7 @@ const Home = () => {
       </div>
 
       {/* Quick Menu */}
-      <div className="grid grid-cols-4 gap-4 px-6 py-5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md text-[#2b2b2b] dark:text-gray-200 shadow-lg rounded-3xl mx-4 mt-3 transition-colors duration-300">
+      <div className="grid grid-cols-4 gap-4 px-6 py-5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md text-gray-800 dark:text-gray-200 shadow-lg rounded-3xl mx-4 mt-3 transition-colors duration-300">
         {[
           { icon: <FaBookOpen />, label: "Last Read" },
           { icon: <FaQuran />, label: "Quran" },
@@ -428,10 +428,10 @@ const Home = () => {
             key={index}
             className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-xl p-3 transition-all duration-200 cursor-pointer group shadow hover:shadow-xl hover:scale-105"
           >
-            <div className="text-[#25d162] group-hover:scale-125 transition-transform">
+            <div className="text-green-500 group-hover:scale-125 transition-transform">
               {item.icon}
             </div>
-            <p className="text-xs mt-1 font-semibold group-hover:text-[#25d162]">
+            <p className="text-xs mt-1 font-semibold group-hover:text-green-500">
               {item.label}
             </p>
           </div>
@@ -439,10 +439,10 @@ const Home = () => {
       </div>
 
       {/* Today's Activities */}
-      <div className="bg-white dark:bg-gray-900 text-[#2b2b2b] dark:text-gray-200 rounded-3xl mx-6 mt-6 p-6 shadow-lg transition-colors duration-300">
+      <div className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-3xl mx-6 mt-6 p-6 shadow-lg transition-colors duration-300">
         <div className="flex justify-between items-center">
           <h2 className="font-bold text-lg">Today's Activities</h2>
-          <span className="text-sm font-semibold text-[#25d162] bg-[#25d162]/10 px-3 py-1 rounded-lg shadow-sm">
+          <span className="text-sm font-semibold text-green-600 bg-green-100 dark:bg-green-900 px-3 py-1 rounded-lg shadow-sm">
             33%
           </span>
         </div>
@@ -455,18 +455,18 @@ const Home = () => {
 
         {/* Progress Bar */}
         <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-3 overflow-hidden">
-          <div className="absolute top-0 left-0 h-3 bg-gradient-to-r from-[#25d162] to-green-700 rounded-full w-1/3 transition-all duration-500 ease-out"></div>
+          <div className="absolute top-0 left-0 h-3 bg-gradient-to-r from-green-500 to-green-700 rounded-full w-1/3 transition-all duration-500 ease-out"></div>
         </div>
 
-        <button className="mt-5 w-full bg-gradient-to-r from-[#25d162] to-green-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-200">
+        <button className="mt-5 w-full bg-gradient-to-r from-green-500 to-green-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-200">
           Go to Checklist
         </button>
       </div>
 
-      {/* Map Modal */}
+      {/* Map Modal - Made smaller */}
       {showMapModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl h-[600px] flex flex-col shadow-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg h-[450px] flex flex-col shadow-2xl">
             {/* Modal Header */}
             <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
@@ -480,8 +480,8 @@ const Home = () => {
               </button>
             </div>
 
-            {/* Map Container */}
-            <div className="flex-1 relative bg-gray-100 dark:bg-gray-700">
+            {/* Map Container - Reduced height */}
+            <div className="flex-1 relative bg-gray-100 dark:bg-gray-700 min-h-[250px]">
               <div 
                 ref={mapRef} 
                 className="w-full h-full"
@@ -490,7 +490,7 @@ const Home = () => {
               {mapLoading && (
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center">
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center gap-3">
-                    <FaSpinner className="animate-spin text-[#25d162]" />
+                    <FaSpinner className="animate-spin text-green-500" />
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       Getting location details...
                     </span>
@@ -513,7 +513,7 @@ const Home = () => {
                   </div>
                   <button
                     onClick={confirmManualLocation}
-                    className="bg-[#25d162] text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors"
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors"
                   >
                     Use This Location
                   </button>
